@@ -5,22 +5,20 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y \
     xfce4 \
     xfce4-goodies \
+    xrdp \
     chromium-browser \
-    x11vnc \
-    xvfb \
     wget \
     curl \
-    git \
-    python3 \
-    python3-pip \
-    python3-venv \
     && apt-get clean
 
-RUN git clone https://github.com/novnc/noVNC.git /opt/noVNC && \
-    git clone https://github.com/novnc/websockify /opt/noVNC/utils/websockify && \
-    ln -s /opt/noVNC/vnc.html /opt/noVNC/index.html
+RUN useradd -m -s /bin/bash rdpuser && \
+    echo "rdpuser:password123" | chpasswd && \
+    adduser xrdp ssl-cert
 
-ENV PORT=6080
-EXPOSE 6080
+RUN echo "xfce4-session" > /home/rdpuser/.xsession && \
+    chown rdpuser:rdpuser /home/rdpuser/.xsession
 
-CMD ["sh", "-c", "Xvfb :1 -screen 0 1024x768x16 & export DISPLAY=:1 && xfce4-session & x11vnc -forever -shared -nopw -rfbport 5901 & /opt/noVNC/utils/novnc_proxy --vnc localhost:5901 --listen $PORT"]
+ENV PORT=3389
+EXPOSE 3389
+
+CMD ["sh", "-c", "rm -f /var/run/xrdp.pid /var/run/xrdp-sesman.pid && xrdp-sesman && xrdp --nodaemon"]
